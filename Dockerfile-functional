@@ -1,0 +1,12 @@
+FROM adoptopenjdk/openjdk11:latest
+
+COPY docker/wait-for-mysql.sh .
+COPY docker/app-health.sh .
+COPY build/libs/APP.jar .
+
+RUN apt-get -y update
+RUN apt-get -y install mysql-server
+RUN apt-get -y install curl
+RUN apt-get -y install jq
+
+CMD ["java", "-jar", "APP.jar"]

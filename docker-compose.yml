@@ -1,0 +1,71 @@
+version: '3.7'
+
+services:
+
+  db:
+    container_name: prepay-accounts_db
+    image: mysql:5.7.17
+    environment:
+      - MYSQL_ROOT_HOST=%
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=prepay-accounts
+    ports:
+      - 3306:3306
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "db", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    volumes:
+      - db:/var/lib/mysql
+
+  testdb:
+    container_name: prepay-accounts_testdb
+    image: mysql:5.7.17
+    environment:
+      - MYSQL_ROOT_HOST=%
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=prepay-accounts
+    ports:
+      - 3307:3306
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "testdb", "-uroot", "-proot"]
+      interval: 1s
+      timeout: 1s
+      retries: 20
+      start_period: 5s
+
+  app:
+    container_name: prepay-accounts_app
+    build:
+      context: .
+      dockerfile: docker/Dockerfile-functional
+    environment:
+      - SPRING_PROFILES_ACTIVE=functional
+    ports:
+      - 8080:8080
+    command: ["./wait-for-mysql.sh", "--", "java -jar APP.jar"]
+    healthcheck:
+      test: ["CMD", "./app-health.sh"]
+      interval: 2s
+      timeout: 10s
+      retries: 20
+      start_period: 10s
+
+    depends_on:
+      - testdb
+
+
+  swagger-ui:
+    container_name: prepay-accounts_swagger-ui
+    build:
+      context: .
+      dockerfile: docker/Dockerfile-swaggerui
+    environment:
+      - SWAGGER_JSON=/app/openapi-spec.yml
+    ports:
+      - 8088:8080
+
+volumes:
+  db:
